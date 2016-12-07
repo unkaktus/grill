@@ -10,6 +10,12 @@ Install
 $ go get github.com/nogoegst/grill
 ```
 
+Accuracy
+--------
+*Don't ever use wireless links* on the way to the hosts. Constant packet loss and retransmisions drastically reduce scan accuracy.
+
+*Use less NATs as possible* (down to 0), they introduce delays and change packets.
+
 Kernel interference
 -------------------
 To avoid kernel interference during scan add a rule to your firewall to drop outgoing RST packets.
