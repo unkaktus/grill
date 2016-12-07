@@ -10,11 +10,13 @@ Install
 $ go get github.com/nogoegst/grill
 ```
 
-Accuracy
---------
+Caveats
+-------
 *Don't ever use wireless links* on the way to the hosts. Constant packet loss and retransmisions drastically reduce scan accuracy.
 
 *Use less NATs as possible* (down to 0), they introduce delays and change packets.
+
+Currenly `grill` uses around 1.2 Mbit/s at max.
 
 Kernel interference
 -------------------
