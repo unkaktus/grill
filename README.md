@@ -53,7 +53,7 @@ curl https://collector.torproject.org/recent/relay-descriptors/consensuses/`date
 ```
 
 And then just pass resulted file to `grill` input.
-
+As of now, scanning whole Tor network should take less than 50m. (Probaly waiting for 7s for packets to arrive is too much?)
 
 Acknolegments
 -------------
