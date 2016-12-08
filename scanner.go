@@ -31,16 +31,24 @@ type ScanResult struct {
 	elapsed time.Duration
 }
 
-func Scan(resultCh chan<- ScanResult, routing rough.Routing, addr net.IP, port uint16) {
+type Scanner struct {
+	Addr       net.IP
+	Port       uint16
+	Routing    rough.Routing
+	ProbeCount int
+	Timeout    time.Duration
+}
+
+func (scanner *Scanner) Scan(resultCh chan<- ScanResult) {
 	s := &rough.TCP{}
-	s.SetRouting(routing)
-	s.RemoteAddr = addr
+	s.SetRouting(scanner.Routing)
+	s.RemoteAddr = scanner.Addr
 	s.LocalPort = rough.RandUint16()
-	s.RemotePort = port
+	s.RemotePort = scanner.Port
 	s.Open()
 	defer s.Close()
 
-	result := ScanResult{addr: addr, port: port}
+	result := ScanResult{addr: scanner.Addr, port: scanner.Port}
 
 	hsResult := make(chan bool)
 	go s.DoHandshake(hsResult)
@@ -58,7 +66,7 @@ func Scan(resultCh chan<- ScanResult, routing rough.Routing, addr net.IP, port u
 	var rxWg sync.WaitGroup
 	rxWg.Add(1)
 	go func() {
-		t := time.After(7 * time.Second)
+		t := time.After(scanner.Timeout)
 	L:
 		for {
 			select {
@@ -73,16 +81,14 @@ func Scan(resultCh chan<- ScanResult, routing rough.Routing, addr net.IP, port u
 		rxWg.Done()
 	}()
 
-	probesNumber := 500
-
 	start := time.Now()
-	for i := 0; i < probesNumber; i++ {
+	for i := 0; i < scanner.ProbeCount; i++ {
 		s.SendOut()
 		s.WaitTX()
 	}
 	result.elapsed = time.Since(start)
 	rxWg.Wait()
-	//Send right RST
+	//Send a valid RST
 	s.Pkt.Seq -= inWinOffset
 	s.SendOut()
 	s.WaitTX()
@@ -92,6 +98,7 @@ func Scan(resultCh chan<- ScanResult, routing rough.Routing, addr net.IP, port u
 }
 func main() {
 	routing := rough.Routing{}
+	var probeCount = flag.Int("probes", 500, "Number of probe packets")
 	var device = flag.String("i", "", "Interface for packet injection")
 	var srcLLAddr = flag.String("sll", "", "Source link-layer address")
 	var dstLLAddr = flag.String("dll", "", "Destination link-layer address")
@@ -143,8 +150,15 @@ func main() {
 		port := uint16(portu64)
 		wg.Add(1)
 		go func() {
+			scanner := Scanner{
+				Addr:       addr,
+				Port:       port,
+				Routing:    routing,
+				ProbeCount: *probeCount,
+				Timeout:    7 * time.Second,
+			}
 			time.Sleep(time.Duration(badrand.Intn(6000)) * time.Millisecond)
-			Scan(scanResults, routing, addr, port)
+			scanner.Scan(scanResults)
 			wg.Done()
 		}()
 	}
