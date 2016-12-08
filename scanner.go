@@ -105,10 +105,38 @@ func main() {
 	var srcIPAddr = flag.String("sip", "", "Source IP address")
 	flag.Parse()
 
+	if (*device == "") {
+		log.Fatalf("Please specify interface")
+	}
+	iface, err := net.InterfaceByName(*device)
+	if err != nil {
+		log.Fatal(err)
+	}
 	routing.Device = *device
-	routing.SrcLLAddr, _ = net.ParseMAC(*srcLLAddr)
-	routing.DstLLAddr, _ = net.ParseMAC(*dstLLAddr)
-	routing.SrcIPAddr = net.ParseIP(*srcIPAddr)
+	if *srcLLAddr == "" {
+		routing.SrcLLAddr = iface.HardwareAddr
+	} else {
+		routing.SrcLLAddr, err = net.ParseMAC(*srcLLAddr)
+		if err != nil {
+			log.Fatalf("Invalid source MAC address")
+		}
+	}
+	routing.DstLLAddr, err = net.ParseMAC(*dstLLAddr)
+	if err != nil {
+		log.Fatalf("Invalid destination MAC address")
+	}
+	if *srcIPAddr == "" {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			log.Fatalf("Unable to get IP address of interface: %v", err)
+		}
+		if addrs[0].Network() != "ip+net" {
+			log.Fatalf("Interface address is not supported")
+		}
+		routing.SrcIPAddr, _, _ = net.ParseCIDR(addrs[0].String())
+	} else {
+		routing.SrcIPAddr = net.ParseIP(*srcIPAddr)
+	}
 
 	simultScans := 16
 	schScans := make(chan struct{}, simultScans)

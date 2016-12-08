@@ -38,7 +38,7 @@ Usage
 `grill` reads `stdin` and scans hosts from it (up to 16 concurrent scans). The input format is `host port\n`.
 
 ```
-# cat probe | grill -i [interface] -sll [your MAC] -dll [gateway MAC] -sip [your IP] > results 
+# cat probe | grill -i interface -dll gateway-MAC [-sll src-MAC] [-sip src-IP] > results 
 ```
 
 The output format is `host:port,recievedChACKs,sendingTime`.
