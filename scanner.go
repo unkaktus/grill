@@ -106,7 +106,6 @@ func main() {
 	flag.Parse()
 
 	routing.Device = *device
-	log.Printf("%v", *device)
 	routing.SrcLLAddr, _ = net.ParseMAC(*srcLLAddr)
 	routing.DstLLAddr, _ = net.ParseMAC(*dstLLAddr)
 	routing.SrcIPAddr = net.ParseIP(*srcIPAddr)
@@ -142,6 +141,9 @@ func main() {
 		i += 1
 		log.Printf("[%d] Initiating scan for %s", i, line)
 		lineSplit := strings.SplitN(line, " ", 2)
+		if len(lineSplit) != 2 {
+			log.Fatalf("Broken input")
+		}
 		addr := net.ParseIP(lineSplit[0])
 		portu64, err := strconv.ParseUint(lineSplit[1], 10, 16)
 		if err != nil {
