@@ -1,8 +1,8 @@
 grill
 =====
 
-`grill`, a-la global rate-limiting in Linux, is a scanner for
-CVE-2016-5696 (aka pure TCP off-path).
+`grill`, aka global rate-limiting in Linux, is a scanner for
+CVE-2016-5696 (pure TCP off-path).
 
 Install
 -------
