@@ -31,7 +31,6 @@ then `# pfctl -f /etc/pf.conf`.
 For NetFilter:
 ```
 # iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP
-
 ```
 
 Usage
