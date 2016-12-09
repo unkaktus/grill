@@ -16,7 +16,7 @@ Caveats
 
 *Use less NATs as possible* (down to 0), they introduce delays and change packets.
 
-Currenly `grill` uses around avg. 400KBit/s and max. 500Kbit/s of output bandwidth.
+Currenly `grill` uses around avg. 400KBit/s and max. 500Kbit/s of output bandwidth (16 concurrent scans).
 
 Kernel interference
 -------------------
@@ -59,7 +59,11 @@ curl https://collector.torproject.org/recent/relay-descriptors/consensuses/`date
 ```
 
 And then just pass resulted file to `grill` input.
-As of now, scanning whole Tor network should take less than 30m.
+As of now, scanning whole Tor network should take less than 30m (16 concurrent scans).
+
+I managed to scan whole net in 7m44s by using 127 concurrent scans and in 6m30s by reducing timeout to 1.7s further (this is probably not safe due to packet loss, congestion, etc).
+
+Note that 127 is the maximum (and reasonable) number of open BPFs in OpenBSD. In Linux this limit is higher but it will make you kernel almost stuck. Anyway, good luck.
 
 Acknowlegments
 -------------
