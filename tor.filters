@@ -1,2 +1,31 @@
 cat details | jq '.relays[]' | jq -r '.or_addresses[0] + "," + .fingerprint + "," + .platform' > details.csv
 cat results | verdict | while read -r line; do host=$(cat details.csv | grep $(echo $line | awk -F "\"*,\"*" '{printf("%s",$1)}') | sed 1q ); echo $host,$(echo $line | awk -F "\"*,\"*" '{printf("%s,%s,%s,%s\n",$2,$3,$4,$5)}'); done | cat > results.tor
+
+For consensus weight calculation:
+cat details | jq '.relays[]' | jq -r '.or_addresses[0] + "," + .fingerprint + "," + .platform + "," + (.consensus_weight_fraction | tostring)' > details.csv
+cat results.tor | grep -v ^, | grep -v null | grep vulnerable | awk -F "\"*,\"*" '{printf("%s\n", $4)}' > vuln.cw
+
+Then to summ these up:
+
+package main
+
+import(
+	"os"
+	"bufio"
+	"log"
+	"strconv"
+)
+
+func main() {
+	file, _ := os.Open("vuln.cw")
+	s := bufio.NewScanner(file)
+	var vcw float64
+	for s.Scan() {
+		cw, err := strconv.ParseFloat(s.Text(), 64)
+		if err != nil {
+			log.Fatal(err)
+		}
+		vcw += cw
+	}
+	log.Printf("VCW: %f", vcw)
+}
