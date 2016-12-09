@@ -112,6 +112,7 @@ func (scanner *Scanner) Scan(resultCh chan<- ScanResult) {
 func main() {
 	routing := rough.Routing{}
 	var probeCount = flag.Int("probes", 111, "Number of probe packets in one burst")
+	var simultScanFlag = flag.Int("n", 16, "Number simultaneous scans")
 	var device = flag.String("i", "", "Interface for packet injection")
 	var srcLLAddr = flag.String("sll", "", "Source link-layer address")
 	var dstLLAddr = flag.String("dll", "", "Destination link-layer address")
@@ -151,7 +152,7 @@ func main() {
 		routing.SrcIPAddr = net.ParseIP(*srcIPAddr)
 	}
 
-	simultScans := 16
+	simultScans := *simultScanFlag
 	schScans := make(chan struct{}, simultScans)
 	scanResults := make(chan ScanResult, simultScans)
 	for i := 0; i < simultScans; i++ {
