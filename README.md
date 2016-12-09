@@ -16,7 +16,7 @@ Caveats
 
 *Use less NATs as possible* (down to 0), they introduce delays and change packets.
 
-Currenly `grill` uses around 1.2 Mbit/s at max.
+Currenly `grill` uses around avg. 400KBit/s and max. 500Kbit/s of output bandwidth.
 
 Kernel interference
 -------------------
@@ -41,7 +41,7 @@ Usage
 # cat probe | grill -i interface -dll gateway-MAC [-sll src-MAC] [-sip src-IP] > results 
 ```
 
-The output format is `host:port,recievedChACKs,sendingTime`.
+The output format is `host:port,recievedChACKs,1stBurstSendingTime,2ndBurstSendingTime`.
 
 So it goes. Have fun and make love.
 
@@ -54,9 +54,9 @@ curl https://collector.torproject.org/recent/relay-descriptors/consensuses/`date
 ```
 
 And then just pass resulted file to `grill` input.
-As of now, scanning whole Tor network should take less than 50m. (Probaly waiting for 7s for packets to arrive is too much?)
+As of now, scanning whole Tor network should take less than 30m.
 
-Acknolegments
+Acknowlegments
 -------------
 `grill` is hugely inspired by similar Scapy scanner by David Stainton [https://github.com/david415/scan_for_rfc5961]
 and PoC by violentshell [https://github.com/violentshell/rover].

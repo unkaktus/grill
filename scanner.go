@@ -24,11 +24,12 @@ import (
 )
 
 type ScanResult struct {
-	addr    net.IP
-	port    uint16
-	err     error
-	chacks  uint32
-	elapsed time.Duration
+	addr     net.IP
+	port     uint16
+	err      error
+	chacks   uint32
+	elapsed1 time.Duration
+	elapsed2 time.Duration
 }
 
 type Scanner struct {
@@ -81,13 +82,25 @@ func (scanner *Scanner) Scan(resultCh chan<- ScanResult) {
 		rxWg.Done()
 	}()
 
+	ticker := time.NewTicker(time.Second)
+	// Send first burst
 	start := time.Now()
 	for i := 0; i < scanner.ProbeCount; i++ {
 		s.SendOut()
 		s.WaitTX()
 	}
-	result.elapsed = time.Since(start)
+	result.elapsed1 = time.Since(start)
+
+	// Send second burst
+	<-ticker.C
+	start = time.Now()
+	for i := 0; i < scanner.ProbeCount; i++ {
+		s.SendOut()
+		s.WaitTX()
+	}
+	result.elapsed2 = time.Since(start)
 	rxWg.Wait()
+	ticker.Stop()
 	//Send a valid RST
 	s.Pkt.Seq -= inWinOffset
 	s.SendOut()
@@ -98,14 +111,14 @@ func (scanner *Scanner) Scan(resultCh chan<- ScanResult) {
 }
 func main() {
 	routing := rough.Routing{}
-	var probeCount = flag.Int("probes", 500, "Number of probe packets")
+	var probeCount = flag.Int("probes", 111, "Number of probe packets in one burst")
 	var device = flag.String("i", "", "Interface for packet injection")
 	var srcLLAddr = flag.String("sll", "", "Source link-layer address")
 	var dstLLAddr = flag.String("dll", "", "Destination link-layer address")
 	var srcIPAddr = flag.String("sip", "", "Source IP address")
 	flag.Parse()
 
-	if (*device == "") {
+	if *device == "" {
 		log.Fatalf("Please specify interface")
 	}
 	iface, err := net.InterfaceByName(*device)
@@ -127,7 +140,7 @@ func main() {
 	}
 	if *srcIPAddr == "" {
 		addrs, err := iface.Addrs()
-		if err != nil {
+		if err != nil || len(addrs) == 0 {
 			log.Fatalf("Unable to get IP address of interface: %v", err)
 		}
 		if addrs[0].Network() != "ip+net" {
@@ -148,7 +161,7 @@ func main() {
 	finished := make(chan struct{})
 	go func() {
 		for result := range scanResults {
-			fmt.Printf("%s:%d,%d,%s\n", result.addr, result.port, result.chacks, result.elapsed)
+			fmt.Printf("%s:%d,%d,%s,%s\n", result.addr, result.port, result.chacks, result.elapsed1, result.elapsed2)
 			schScans <- struct{}{}
 		}
 		finished <- struct{}{}
@@ -185,9 +198,10 @@ func main() {
 				Port:       port,
 				Routing:    routing,
 				ProbeCount: *probeCount,
-				Timeout:    7 * time.Second,
+				Timeout:    3 * time.Second,
 			}
-			time.Sleep(time.Duration(badrand.Intn(6000)) * time.Millisecond)
+			backoffms := badrand.Intn(60*(simultScans-len(schScans)-1) + 1)
+			time.Sleep(time.Duration(backoffms) * time.Millisecond)
 			scanner.Scan(scanResults)
 			wg.Done()
 		}()
