@@ -1,0 +1,2 @@
+cat details | jq '.relays[]' | jq -r '.or_addresses[0] + "," + .fingerprint + "," + .platform' > details.csv
+cat results | verdict | while read -r line; do host=$(cat details.csv | grep $(echo $line | awk -F "\"*,\"*" '{printf("%s",$1)}') | sed 1q ); echo $host,$(echo $line | awk -F "\"*,\"*" '{printf("%s,%s,%s,%s\n",$2,$3,$4,$5)}'); done | cat > results.tor
