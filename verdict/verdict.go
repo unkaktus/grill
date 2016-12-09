@@ -42,22 +42,20 @@ func main() {
 		} else {
 			chacks, _ := strconv.Atoi(rec[1])
 			switch chacks {
-			case 100, 200, 300, 400:
+			case 200:
 				verdict = "vulnerable"
 			case 98, 99:
 				verdict = "likely vulnerable"
-			case 500:
-				verdict = "sysctl workaround/fixed kernel"
-			case 498, 499:
-				verdict = "likely sysctl workaround/fixed kernel"
+			case 222, 221, 220:
+				verdict = "lots of challenge ACKs"
 			case 0:
 				verdict = "zero challenge ACKs"
 			case 1:
 				verdict = "one challenge ACK"
-			case 391:
-				verdict = "391G/sysctl workaround on a fixed kernel?"
+			case 2:
+				verdict = "two challenge ACKs"
 			default:
-				verdict = "many challenge ACKs"
+				verdict = "multiple challenge ACKs"
 			}
 		}
 		//h := strings.SplitN(rec[0], ":", 2)
