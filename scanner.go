@@ -199,7 +199,8 @@ func main() {
 				Port:       port,
 				Routing:    routing,
 				ProbeCount: *probeCount,
-				Timeout:    3 * time.Second,
+				// This can be 1700, seems to work.
+				Timeout:    3000 * time.Millisecond,
 			}
 			backoffms := badrand.Intn(60*(simultScans-len(schScans)-1) + 1)
 			time.Sleep(time.Duration(backoffms) * time.Millisecond)
