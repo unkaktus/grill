@@ -43,6 +43,11 @@ Usage
 
 The output format is `host:port,recievedChACKs,1stBurstSendingTime,2ndBurstSendingTime`.
 
+To get human results, run results though `verdict` utility (is in `verdict` directory):
+```
+cat results | verdict
+```
+
 So it goes. Have fun and make love.
 
 
