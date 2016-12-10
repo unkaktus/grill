@@ -24,12 +24,11 @@ import (
 )
 
 type ScanResult struct {
-	addr     net.IP
-	port     uint16
-	err      error
-	chacks   uint32
-	elapsed1 time.Duration
-	elapsed2 time.Duration
+	addr   net.IP
+	port   uint16
+	err    error
+	chacks uint32
+	bursts []Burst
 }
 
 type Scanner struct {
@@ -37,7 +36,11 @@ type Scanner struct {
 	Port       uint16
 	Routing    rough.Routing
 	ProbeCount int
-	Timeout    time.Duration
+}
+
+type Burst struct {
+	ChACKs  int
+	Elapsed time.Duration
 }
 
 func (scanner *Scanner) Scan(resultCh chan<- ScanResult) {
@@ -64,43 +67,35 @@ func (scanner *Scanner) Scan(resultCh chan<- ScanResult) {
 	s.Pkt.RST = true
 	s.Pkt.Seq = s.Pkt.Seq + inWinOffset
 
-	var rxWg sync.WaitGroup
-	rxWg.Add(1)
-	go func() {
-		t := time.After(scanner.Timeout)
-	L:
-		for {
-			select {
-			case <-t:
-				break L
-			case tcp := <-s.RX:
+	result.bursts = make([]Burst, 2)
+	ticker := time.NewTicker(time.Second)
+	for b, _ := range result.bursts {
+		go func() {
+			for {
+				tcp, ok := <-s.RX
+				if !ok {
+					break
+				}
 				if tcp.ACK {
-					result.chacks += 1
+					result.bursts[b].ChACKs += 1
 				}
 			}
+		}()
+
+		start := time.Now()
+		for i := 0; i < scanner.ProbeCount; i++ {
+			s.SendOut()
+			s.WaitTX()
 		}
-		rxWg.Done()
-	}()
-
-	ticker := time.NewTicker(time.Second)
-	// Send first burst
-	start := time.Now()
-	for i := 0; i < scanner.ProbeCount; i++ {
-		s.SendOut()
-		s.WaitTX()
+		if time.Since(start) > 900*time.Millisecond {
+			log.Fatalf("It took too long to send a burst. Get better connectivity")
+		}
+		result.bursts[b].Elapsed = time.Since(start)
+		<-ticker.C
 	}
-	result.elapsed1 = time.Since(start)
 
-	// Send second burst
-	<-ticker.C
-	start = time.Now()
-	for i := 0; i < scanner.ProbeCount; i++ {
-		s.SendOut()
-		s.WaitTX()
-	}
-	result.elapsed2 = time.Since(start)
-	rxWg.Wait()
 	ticker.Stop()
+
 	//Send a valid RST
 	s.Pkt.Seq -= inWinOffset
 	s.SendOut()
@@ -161,8 +156,8 @@ func main() {
 
 	finished := make(chan struct{})
 	go func() {
-		for result := range scanResults {
-			fmt.Printf("%s:%d,%d,%s,%s\n", result.addr, result.port, result.chacks, result.elapsed1, result.elapsed2)
+		for r := range scanResults {
+			fmt.Printf("%s:%d,%d,%s,%d,%s\n", r.addr, r.port, r.bursts[0].ChACKs, r.bursts[0].Elapsed, r.bursts[1].ChACKs, r.bursts[1].Elapsed)
 			schScans <- struct{}{}
 		}
 		finished <- struct{}{}
@@ -199,8 +194,6 @@ func main() {
 				Port:       port,
 				Routing:    routing,
 				ProbeCount: *probeCount,
-				// This can be 1700, seems to work.
-				Timeout:    3000 * time.Millisecond,
 			}
 			backoffms := badrand.Intn(60*(simultScans-len(schScans)-1) + 1)
 			time.Sleep(time.Duration(backoffms) * time.Millisecond)
