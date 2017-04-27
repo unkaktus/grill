@@ -40,11 +40,12 @@ func main() {
 		if rec[2] == "0s" {
 			verdict = "offline"
 		} else {
-			chacks, _ := strconv.Atoi(rec[1])
-			switch chacks {
-			case 200:
+			c1, _ := strconv.Atoi(rec[1])
+			c2, _ := strconv.Atoi(rec[3])
+			switch {
+			case c1 == 100 && c2 == 100:
 				verdict = "vulnerable"
-			case 98, 99:
+			case (c1 == 100 && c2 == 99) || (c1 == 99 && c2 == 100):
 				verdict = "likely vulnerable"
 			case 222, 221, 220:
 				verdict = "lots of challenge ACKs"

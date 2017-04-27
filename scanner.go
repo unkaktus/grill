@@ -12,7 +12,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	badrand "math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -20,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nogoegst/rand"
 	"github.com/nogoegst/rough"
 )
 
@@ -47,7 +47,7 @@ func (scanner *Scanner) Scan(resultCh chan<- ScanResult) {
 	s := &rough.TCP{}
 	s.SetRouting(scanner.Routing)
 	s.RemoteAddr = scanner.Addr
-	s.LocalPort = rough.RandUint16()
+	s.LocalPort = rand.Uint16()
 	s.RemotePort = scanner.Port
 	s.Open()
 	defer s.Close()
@@ -157,7 +157,9 @@ func main() {
 	finished := make(chan struct{})
 	go func() {
 		for r := range scanResults {
-			fmt.Printf("%s:%d,%d,%s,%d,%s\n", r.addr, r.port, r.bursts[0].ChACKs, r.bursts[0].Elapsed, r.bursts[1].ChACKs, r.bursts[1].Elapsed)
+			if r.err == nil {
+				fmt.Printf("%s:%d,%d,%s,%d,%s\n", r.addr, r.port, r.bursts[0].ChACKs, r.bursts[0].Elapsed, r.bursts[1].ChACKs, r.bursts[1].Elapsed)
+			}
 			schScans <- struct{}{}
 		}
 		finished <- struct{}{}
@@ -195,7 +197,7 @@ func main() {
 				Routing:    routing,
 				ProbeCount: *probeCount,
 			}
-			backoffms := badrand.Intn(60*(simultScans-len(schScans)-1) + 1)
+			backoffms := rand.Intn(60*(simultScans-len(schScans)-1) + 1)
 			time.Sleep(time.Duration(backoffms) * time.Millisecond)
 			scanner.Scan(scanResults)
 			wg.Done()
